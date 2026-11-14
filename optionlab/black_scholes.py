@@ -77,8 +77,8 @@ def black_scholes_price(S, K, T, r, sigma, option_type="call", q=0.0):
        BELOW K. You can check this formula is consistent with the call
        formula using put-call parity and the fact that N(x) + N(-x) = 1.
 
-    Adding a dividend yield q   (TO DO: not in the code below yet)
-    -----------------------------------------------------------
+    Adding a dividend yield q
+    -------------------------
     Owning the option is not owning the stock: you miss the dividends paid
     before expiry. A share bought today WITHOUT its dividends up to time T
     is worth S * e^(-q*T), not S. So wherever the formula has S, use
@@ -110,10 +110,10 @@ def black_scholes_price(S, K, T, r, sigma, option_type="call", q=0.0):
     if option_type not in ("call", "put"):
         raise ValueError("option_type must be 'call' or 'put'")
 
-    d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+    d1 = (math.log(S / K) + ((r - q) + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
     d2 = d1 - sigma * math.sqrt(T)
 
     if option_type == "call":
-        return S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+        return S * math.exp(-q * T) * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
     else:
-        return K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+        return K * math.exp(-r * T) * norm.cdf(-d2) - S * math.exp(-q * T) * norm.cdf(-d1)

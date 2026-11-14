@@ -80,8 +80,8 @@ def binomial_price(S, K, T, r, sigma, steps, option_type="call", american=False,
     7. American only: at every node the holder can exercise right now, so
            value = max(value from step 6, payoff from exercising now)
 
-    Adding a dividend yield q   (TO DO: not in the code below yet)
-    -----------------------------------------------------------
+    Adding a dividend yield q
+    -------------------------
     A stock that pays dividends hands part of its return to the holder as
     cash. The option holder does not get that cash, and the stock PRICE
     grows more slowly because of it. In the risk-neutral world the total
@@ -122,7 +122,7 @@ def binomial_price(S, K, T, r, sigma, steps, option_type="call", american=False,
     dt = T / steps
     u = math.exp(sigma * math.sqrt(dt))
     d = 1 / u
-    p = (math.exp(r * dt) - d) / (u - d)
+    p = (math.exp((r - q)* dt) - d) / (u - d)
     disc = math.exp(-r * dt)
 
     values = []
