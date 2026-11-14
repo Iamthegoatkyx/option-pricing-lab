@@ -72,3 +72,26 @@ def test_delta_stays_in_its_range(S, K, T):
 def test_gamma_and_vega_are_positive(S, K, T):
     assert greeks.gamma(S, K, T, r, sigma) > 0.0
     assert greeks.vega(S, K, T, r, sigma) > 0.0
+
+
+# ---------------------------------------------------------------------------
+# The same checks with a dividend yield
+# ---------------------------------------------------------------------------
+
+Q = 0.03
+
+
+@pytest.mark.parametrize("S, K, T", CASES)
+@pytest.mark.parametrize("option_type", ["call", "put"])
+@pytest.mark.parametrize("name, tolerance", [("delta", 1e-6), ("gamma", 1e-5),
+                                             ("vega", 1e-4), ("theta", 1e-4)])
+def test_greeks_with_dividend_yield_match_finite_differences(S, K, T, option_type, name, tolerance):
+    formula = getattr(greeks, name)(S, K, T, r, sigma, option_type, Q)
+    nudge = getattr(greeks, "fd_" + name)(S, K, T, r, sigma, option_type, Q)
+    assert formula == pytest.approx(nudge, abs=tolerance)
+
+
+def test_dividend_yield_lowers_call_delta():
+    without = greeks.delta(100.0, 100.0, 1.0, r, sigma, "call")
+    with_dividends = greeks.delta(100.0, 100.0, 1.0, r, sigma, "call", Q)
+    assert with_dividends < without

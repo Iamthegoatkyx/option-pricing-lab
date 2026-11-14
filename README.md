@@ -15,8 +15,8 @@ them against real market quotes.
 | 5 | 3D Greeks surfaces, checked by finite differences | done |
 | 6 | American put early-exercise boundary | done |
 | 7 | Implied volatility solver | done |
-| 8 | Real-market check (SPY, EWJ option chains) | done without dividends |
-| 9 | Dividends: yield `q` in both pricers; yield vs discrete cash dividends on the SPY parity gap | parity comparison done; `q` in the pricers in progress (18 tests failing until then) |
+| 8 | Real-market check (SPY, EWJ option chains) | done |
+| 9 | Dividends: yield `q` in both pricers; yield vs discrete cash dividends on the SPY parity gap | done |
 
 ## Setup (Mac)
 
@@ -50,8 +50,10 @@ data/          dated snapshots of market data
 
 ## Known limitations
 
-- No dividends yet. A dividend yield will be added in a later step; until
-  then, model prices for dividend-paying underlyings (SPY, EWJ) are biased.
+- Dividends enter the pricers only as a constant yield `q` (the last 12
+  months of dividends over the spot price). Real dividends are lumps of
+  cash on set dates, and EWJ's are irregular (3.06 and 0.50 in the last
+  two payments).
 
 - Implied volatility is unreliable for deep in-the-money options with little
   time left: vega is nearly zero there, so the price says almost nothing

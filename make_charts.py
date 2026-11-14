@@ -55,7 +55,9 @@ from optionlab.market_check import (add_implied_vols, add_model_prices,
                                     add_time_to_expiry, at_the_money_vol,
                                     clean_quotes, keep_near_the_money,
                                     parity_gap, pick_expiry)
-from optionlab.market_data import latest_snapshot_folder, load_snapshot
+from optionlab.dividends import trailing_yield
+from optionlab.market_data import (latest_snapshot_folder, load_dividends,
+                                   load_snapshot)
 
 DATA = Path(__file__).parent / "data"
 snapshot_folder = latest_snapshot_folder(DATA)
@@ -71,9 +73,12 @@ else:
     for ticker, chain in chains.items():
         spot = info["underlyings"][ticker]["spot"]
         spot_date = info["underlyings"][ticker]["spot_date"]
+        # Dividend yield: the last 12 months of dividends over the spot price.
+        dividend_yield = trailing_yield(load_dividends(snapshot_folder, ticker),
+                                        spot, spot_date)
         note = (f"quotes saved {info['snapshot_date']}, spot {spot:.2f} is the "
-                f"{spot_date} close, r = {rate:.2%}, no dividends, "
-                f"European Black-Scholes, strikes within 20% of spot")
+                f"{spot_date} close, r = {rate:.2%}, dividend yield q = "
+                f"{dividend_yield:.2%}, European Black-Scholes, strikes within 20% of spot")
 
         # 1. clean
         cleaned, removed = clean_quotes(chain)
@@ -92,8 +97,10 @@ else:
             chosen = sorted(near["expiry"].unique())
         selected = near[near["expiry"].isin(chosen)].reset_index(drop=True)
 
-        # 4. implied vols
-        selected = add_implied_vols(selected, spot, rate)
+        # 4. implied vols, first ignoring dividends (kept for comparison),
+        #    then with the dividend yield. The charts use the second.
+        without_dividends = add_implied_vols(selected, spot, rate)
+        selected = add_implied_vols(selected, spot, rate, dividend_yield)
         print(f"  {len(selected)} quotes in the chosen expiries, "
               f"{int(selected['implied_vol'].isna().sum())} with no implied vol")
         save(smile_figure(selected, ticker, spot, note), f"smile_{ticker}.html")
@@ -103,7 +110,7 @@ else:
         busiest = usable.groupby("expiry").size().idxmax()
         one_expiry = selected[selected["expiry"] == busiest]
         sigma, atm_strike = at_the_money_vol(one_expiry, spot)
-        one_expiry = add_model_prices(one_expiry, spot, rate, sigma)
+        one_expiry = add_model_prices(one_expiry, spot, rate, sigma, dividend_yield)
         print(f"  market vs model: expiry {busiest}, {len(one_expiry)} quotes, "
               f"at-the-money strike {atm_strike:g}, sigma {sigma:.2%}")
         save(market_vs_model_figure(one_expiry, ticker, spot, sigma, note),
@@ -118,6 +125,16 @@ else:
             gap_text = "n/a" if gap is None else f"{gap:+.2f} at K={gap_strike:g}"
             print(f"  {expiry} ({int(rows['days'].iloc[0])}d): {len(rows)} quotes, "
                   f"ATM vol {vol_text}, parity gap {gap_text}")
+
+            # Call vol and put vol at the strike nearest spot, with q = 0
+            # and with the dividend yield.
+            if strike is not None:
+                for label, table in (("q = 0", without_dividends), (f"q = {dividend_yield:.2%}", selected)):
+                    at_strike = table[(table["expiry"] == expiry) & (table["strike"] == strike)]
+                    vols = {row.option_type: row.implied_vol for row in at_strike.itertuples()}
+                    if "call" in vols and "put" in vols:
+                        print(f"      {label}: call vol {vols['call']:.2%}, put vol {vols['put']:.2%}, "
+                              f"put minus call {vols['put'] - vols['call']:+.2%}")
 
 
 # ---------------------------------------------------------------------------

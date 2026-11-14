@@ -56,3 +56,20 @@ def test_higher_price_means_higher_implied_volatility():
     cheap = implied_volatility(8.0, S, 100.0, 1.0, r, "call")
     dear = implied_volatility(12.0, S, 100.0, 1.0, r, "call")
     assert dear > cheap
+
+
+@pytest.mark.parametrize("option_type", ["call", "put"])
+def test_round_trip_with_a_dividend_yield(option_type):
+    price = black_scholes_price(S, 105.0, 0.5, r, 0.30, option_type, q=0.02)
+    recovered = implied_volatility(price, S, 105.0, 0.5, r, option_type, q=0.02)
+    assert recovered == pytest.approx(0.30, abs=1e-6)
+
+
+def test_ignoring_dividends_makes_call_and_put_vols_disagree():
+    # Prices made WITH a 2% yield, but solved as if there were none.
+    # The call then looks too cheap (low vol) and the put too dear (high vol).
+    call = black_scholes_price(S, 100.0, 1.0, r, 0.20, "call", q=0.02)
+    put = black_scholes_price(S, 100.0, 1.0, r, 0.20, "put", q=0.02)
+    call_vol = implied_volatility(call, S, 100.0, 1.0, r, "call")
+    put_vol = implied_volatility(put, S, 100.0, 1.0, r, "put")
+    assert call_vol < 0.20 < put_vol

@@ -12,7 +12,7 @@ Steps, each one a small function:
 
 Limitations (also listed in the README)
 ---------------------------------------
-- No dividends. SPY and EWJ both pay them, so the model is biased.
+- Dividends enter only as a constant yield q (default 0 = none).
 - SPY and EWJ options are American, but implied volatilities here come
   from the European Black-Scholes formula.
 """
@@ -90,7 +90,7 @@ def pick_expiry(quotes, target_days):
     return choices.loc[gap.idxmin(), "expiry"]
 
 
-def add_implied_vols(quotes, spot, r):
+def add_implied_vols(quotes, spot, r, q=0.0):
     """
     Add an 'implied_vol' column: the Black-Scholes volatility that
     reproduces each quote's mid price. Rows where no volatility works
@@ -98,7 +98,7 @@ def add_implied_vols(quotes, spot, r):
     """
     vols = []
     for row in quotes.itertuples():
-        vols.append(implied_volatility(row.mid, spot, row.strike, row.T, r, row.option_type))
+        vols.append(implied_volatility(row.mid, spot, row.strike, row.T, r, row.option_type, q))
 
     return quotes.assign(implied_vol=pd.Series(vols, index=quotes.index, dtype="float64"))
 
@@ -120,7 +120,7 @@ def at_the_money_vol(quotes, spot):
     return float(at_the_money["implied_vol"].mean()), float(nearest_strike)
 
 
-def add_model_prices(quotes, spot, r, sigma):
+def add_model_prices(quotes, spot, r, sigma, q=0.0):
     """
     Add 'model_price': the Black-Scholes price of every quote using the
     SAME volatility sigma for all strikes, and 'model_error' = model - mid.
@@ -131,7 +131,7 @@ def add_model_prices(quotes, spot, r, sigma):
     """
     prices = []
     for row in quotes.itertuples():
-        prices.append(float(black_scholes_price(spot, row.strike, row.T, r, sigma, row.option_type)))
+        prices.append(float(black_scholes_price(spot, row.strike, row.T, r, sigma, row.option_type, q)))
 
     quotes = quotes.assign(model_price=prices)
     return quotes.assign(model_error=quotes["model_price"] - quotes["mid"])

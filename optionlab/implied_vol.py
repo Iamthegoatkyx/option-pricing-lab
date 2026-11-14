@@ -13,7 +13,7 @@ import math
 from optionlab.black_scholes import black_scholes_price
 
 
-def implied_volatility(price, S, K, T, r, option_type="call",
+def implied_volatility(price, S, K, T, r, option_type="call", q=0.0,
                        low=1e-6, high=5.0, tolerance=1e-8, max_iterations=200):
     """
     Find sigma such that black_scholes_price(S, K, T, r, sigma) = price.
@@ -21,7 +21,7 @@ def implied_volatility(price, S, K, T, r, option_type="call",
     Parameters
     ----------
     price : the option price to match (e.g. a market mid price)
-    S, K, T, r, option_type : as in black_scholes_price()
+    S, K, T, r, option_type, q : as in black_scholes_price()
     low, high : the search range for sigma (0.0001% to 500% by default)
     tolerance : stop when the range is narrower than this
     max_iterations : safety limit so the loop can never run forever
@@ -60,8 +60,8 @@ def implied_volatility(price, S, K, T, r, option_type="call",
     large error in the implied volatility. The solver still returns a
     number there, but it should not be trusted.
     """
-    price_at_low = black_scholes_price(S, K, T, r, low, option_type)
-    price_at_high = black_scholes_price(S, K, T, r, high, option_type)
+    price_at_low = black_scholes_price(S, K, T, r, low, option_type, q)
+    price_at_high = black_scholes_price(S, K, T, r, high, option_type, q)
 
     # The answer must lie strictly between the two ends, otherwise there is
     # none. "<=" matters: a price sitting exactly ON the floor has no time
@@ -71,7 +71,7 @@ def implied_volatility(price, S, K, T, r, option_type="call",
 
     for _ in range(max_iterations):
         middle = (low + high) / 2.0
-        price_at_middle = black_scholes_price(S, K, T, r, middle, option_type)
+        price_at_middle = black_scholes_price(S, K, T, r, middle, option_type, q)
 
         if price_at_middle < price:
             low = middle        # need more volatility: keep the upper half
