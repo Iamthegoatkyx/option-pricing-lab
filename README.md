@@ -9,8 +9,8 @@ them against real market quotes.
 | Stage | What | Status |
 |---|---|---|
 | 1 | Binomial tree pricer (Cox-Ross-Rubinstein), European + American | done |
-| 2 | Black-Scholes pricer | not started |
-| 3 | Convergence: binomial vs Black-Scholes | not started |
+| 2 | Black-Scholes pricer | done |
+| 3 | Convergence: binomial vs Black-Scholes | done |
 | 4 | 3D price surface (spot x time to expiry) | not started |
 | 5 | 3D Greeks surfaces, checked by finite differences | not started |
 | 6 | American put early-exercise boundary | not started |
@@ -59,3 +59,5 @@ Build all charts with `python make_charts.py`, then open the HTML files in
 
 - `binomial_tree_european_call.html`, `binomial_tree_american_put.html`:
   4-step trees with the stock price and option value at every node.
+- `convergence.html`: binomial price for 1 to 500 steps against the
+  Black-Scholes price, and the size of the error on log-log axes.

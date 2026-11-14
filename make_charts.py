@@ -6,7 +6,7 @@ Run with:   python make_charts.py
 
 from pathlib import Path
 
-from optionlab.charts import tree_figure
+from optionlab.charts import convergence_figure, tree_figure
 
 OUTPUTS = Path(__file__).parent / "outputs"
 OUTPUTS.mkdir(exist_ok=True)
@@ -28,3 +28,7 @@ save(tree_figure(S, K, T, r, sigma, 4, "call", american=False),
      "binomial_tree_european_call.html")
 save(tree_figure(S, K, T, r, sigma, 4, "put", american=True),
      "binomial_tree_american_put.html")
+
+# Stage 3: binomial price vs number of steps, against Black-Scholes.
+save(convergence_figure(S, K, T, r, sigma, "call", max_steps=500),
+     "convergence.html")

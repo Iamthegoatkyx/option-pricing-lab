@@ -4,13 +4,16 @@ as interactive HTML files in outputs/.
 """
 
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
+from optionlab.convergence import convergence_table
 from optionlab.tree import build_tree
 
 # Colours used across all charts (dark theme).
 LINE_COLOUR = "#5b6472"      # branches of the tree
 NODE_COLOUR = "#4cc9f0"      # ordinary node
 EXERCISE_COLOUR = "#f72585"  # node where early exercise is best
+ERROR_COLOUR = "#ffd166"     # error curves
 
 
 def tree_figure(S, K, T, r, sigma, steps, option_type="call", american=False):
@@ -79,5 +82,62 @@ def tree_figure(S, K, T, r, sigma, steps, option_type="call", american=False):
         ),
         yaxis=dict(visible=False, range=[-steps - 0.6, steps + 1.4]),
         height=750,
+    )
+    return fig
+
+
+def convergence_figure(S, K, T, r, sigma, option_type="call", max_steps=500):
+    """
+    Two panels sharing the idea "more steps -> closer to Black-Scholes":
+
+    top    : binomial price for each step count, with the Black-Scholes
+             price as a flat dashed line.
+    bottom : size of the error |binomial - Black-Scholes| on log-log axes.
+             On log-log axes a relationship like error = c / n shows up as a
+             straight line sloping down, so the grey guide line 1/n lets you
+             read off how fast the error shrinks.
+    """
+    steps, prices, errors, exact = convergence_table(S, K, T, r, sigma, option_type, max_steps)
+    abs_errors = [abs(e) for e in errors]
+
+    fig = make_subplots(
+        rows=2, cols=1, vertical_spacing=0.14,
+        subplot_titles=("Price vs number of steps", "Absolute error vs number of steps (log-log)"),
+    )
+
+    # --- top panel ---
+    fig.add_trace(go.Scatter(
+        x=steps, y=prices, mode="lines", name="binomial",
+        line=dict(color=NODE_COLOUR, width=1),
+        hovertemplate="steps = %{x}<br>price = %{y:.4f}<extra></extra>",
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=[steps[0], steps[-1]], y=[exact, exact], mode="lines",
+        name=f"Black-Scholes = {exact:.4f}",
+        line=dict(color=EXERCISE_COLOUR, width=2, dash="dash"), hoverinfo="skip",
+    ), row=1, col=1)
+
+    # --- bottom panel ---
+    fig.add_trace(go.Scatter(
+        x=steps, y=abs_errors, mode="lines", name="|error|",
+        line=dict(color=ERROR_COLOUR, width=1),
+        hovertemplate="steps = %{x}<br>|error| = %{y:.5f}<extra></extra>",
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=steps, y=[1 / n for n in steps], mode="lines", name="guide: 1 / steps",
+        line=dict(color=LINE_COLOUR, width=1.5, dash="dot"), hoverinfo="skip",
+    ), row=2, col=1)
+
+    fig.update_xaxes(title_text="number of steps", row=1, col=1)
+    fig.update_yaxes(title_text="option price", row=1, col=1)
+    fig.update_xaxes(title_text="number of steps (log scale)", type="log", row=2, col=1)
+    fig.update_yaxes(title_text="|binomial - Black-Scholes| (log scale)", type="log", row=2, col=1)
+
+    fig.update_layout(
+        template="plotly_dark",
+        title=(f"Binomial tree converging to Black-Scholes: European {option_type}"
+               f"<br><sup>S = {S:g}, K = {K:g}, T = {T:g} yr, r = {r:.0%}, "
+               f"sigma = {sigma:.0%}, steps 1 to {max_steps}</sup>"),
+        height=850,
     )
     return fig
