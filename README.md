@@ -15,7 +15,7 @@ them against real market quotes.
 | 5 | 3D Greeks surfaces, checked by finite differences | done |
 | 6 | American put early-exercise boundary | done |
 | 7 | Implied volatility solver | done |
-| 8 | Real-market check (SPY, EWJ option chains) | not started |
+| 8 | Real-market check (SPY, EWJ option chains) | done without dividends; dividend yield is the next step |
 
 ## Setup (Mac)
 
@@ -56,6 +56,26 @@ data/          dated snapshots of market data
   time left: vega is nearly zero there, so the price says almost nothing
   about volatility.
 
+- The market check prices American options (SPY and EWJ options can be
+  exercised early) with the European Black-Scholes formula.
+- The spot price is the stock's closing price, while option quotes may be
+  from a slightly different time. Any mismatch shifts every implied vol.
+- The relative-spread filter lets through some stale deep in-the-money
+  quotes, because a wide spread is still small relative to a large price.
+- EWJ options are thinly traded: in the 2026-11-14 snapshot only 68 of 663
+  quotes survive cleaning.
+
+## Market data
+
+```bash
+python snapshot_market.py   # download today's chains + rate into data/<date>/
+python make_charts.py       # rebuild every chart from the latest snapshot
+```
+
+The snapshot in `data/2026-11-14/` was taken on a Saturday, so it holds
+Friday 13 November 2026 closing quotes. The risk-free rate is the 3-month
+Treasury yield (FRED series DGS3MO).
+
 ## Charts
 
 Build all charts with `python make_charts.py`, then open the HTML files in
@@ -71,3 +91,7 @@ Build all charts with `python make_charts.py`, then open the HTML files in
   theta, with a dropdown to switch between them.
 - `exercise_boundary.html`: the stock price below which the American put
   should be exercised, through time, from a 1000-step and a 50-step tree.
+- `smile_SPY.html`, `smile_EWJ.html`: implied volatility by strike for
+  several expiries, calls and puts shown separately.
+- `market_vs_model_SPY.html`, `market_vs_model_EWJ.html`: market mid prices
+  (with bid-ask bars) against Black-Scholes prices at one volatility.

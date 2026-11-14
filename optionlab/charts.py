@@ -323,3 +323,96 @@ def exercise_boundary_figure(S, K, T, r, sigma, fine_steps=1000, coarse_steps=50
         height=650,
     )
     return fig
+
+
+# One colour per expiry on the market charts.
+EXPIRY_COLOURS = [NODE_COLOUR, ERROR_COLOUR, EXERCISE_COLOUR,
+                  "#80ed99", "#c77dff", "#ff9f1c", "#e6e6e6"]
+
+
+def smile_figure(quotes, ticker, spot, snapshot_note):
+    """
+    Implied volatility against strike, one colour per expiry.
+    Calls are filled circles, puts are hollow diamonds.
+
+    If Black-Scholes described the market exactly, every point of one
+    expiry would sit on a flat horizontal line.
+    """
+    fig = go.Figure()
+    usable = quotes.dropna(subset=["implied_vol"])
+
+    expiries = sorted(usable["expiry"].unique())
+    for position, expiry in enumerate(expiries):
+        colour = EXPIRY_COLOURS[position % len(EXPIRY_COLOURS)]
+        one_expiry = usable[usable["expiry"] == expiry]
+        days = int(one_expiry["days"].iloc[0])
+
+        for option_type, symbol in (("call", "circle"), ("put", "diamond-open")):
+            rows = one_expiry[one_expiry["option_type"] == option_type].sort_values("strike")
+            if rows.empty:
+                continue
+            fig.add_trace(go.Scatter(
+                x=rows["strike"], y=rows["implied_vol"] * 100.0, mode="markers",
+                name=f"{expiry} ({days}d) {option_type}s, {len(rows)} quotes",
+                marker=dict(color=colour, symbol=symbol, size=7),
+                hovertemplate=("strike = %{x}<br>implied vol = %{y:.1f}%"
+                               f"<extra>{expiry} {option_type}</extra>"),
+            ))
+
+    fig.add_vline(x=spot, line=dict(color=LINE_COLOUR, dash="dash"),
+                  annotation_text=f"spot {spot:.2f}", annotation_position="top")
+    fig.update_layout(
+        template="plotly_dark",
+        title=(f"{ticker}: implied volatility by strike"
+               f"<br><sup>{snapshot_note}</sup>"),
+        xaxis_title="strike",
+        yaxis_title="implied volatility (%)",
+        height=650,
+    )
+    return fig
+
+
+def market_vs_model_figure(quotes, ticker, spot, sigma, snapshot_note):
+    """
+    Market prices against Black-Scholes prices for ONE expiry.
+
+    Dots are market mid prices, with a bar from bid to ask.
+    Lines are Black-Scholes prices using one volatility (the at-the-money
+    implied vol) for every strike.
+    """
+    fig = go.Figure()
+    expiry = quotes["expiry"].iloc[0]
+    days = int(quotes["days"].iloc[0])
+
+    for option_type, colour in (("call", NODE_COLOUR), ("put", EXERCISE_COLOUR)):
+        rows = quotes[quotes["option_type"] == option_type].sort_values("strike")
+        if rows.empty:
+            continue
+        fig.add_trace(go.Scatter(
+            x=rows["strike"], y=rows["mid"], mode="markers",
+            name=f"market {option_type}s (mid, bar = bid to ask)",
+            marker=dict(color=colour, size=6),
+            error_y=dict(type="data", symmetric=False,
+                         array=rows["ask"] - rows["mid"],
+                         arrayminus=rows["mid"] - rows["bid"],
+                         color=colour, thickness=1, width=0),
+            hovertemplate="strike = %{x}<br>market mid = %{y:.2f}<extra></extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=rows["strike"], y=rows["model_price"], mode="lines",
+            name=f"Black-Scholes {option_type}s, sigma = {sigma:.1%}",
+            line=dict(color=colour, width=1.5, dash="dot"),
+            hovertemplate="strike = %{x}<br>model = %{y:.2f}<extra></extra>",
+        ))
+
+    fig.add_vline(x=spot, line=dict(color=LINE_COLOUR, dash="dash"),
+                  annotation_text=f"spot {spot:.2f}", annotation_position="top")
+    fig.update_layout(
+        template="plotly_dark",
+        title=(f"{ticker}: market vs Black-Scholes prices, expiry {expiry} ({days} days)"
+               f"<br><sup>{snapshot_note}</sup>"),
+        xaxis_title="strike",
+        yaxis_title="option price",
+        height=650,
+    )
+    return fig

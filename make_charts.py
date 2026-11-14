@@ -43,3 +43,78 @@ save(greeks_surface_figure(K, r, sigma), "greeks_surfaces.html")
 
 # Stage 6: American put early-exercise boundary.
 save(exercise_boundary_figure(S, K, T, r, sigma), "exercise_boundary.html")
+
+
+# ---------------------------------------------------------------------------
+# Stage 8: real market check, from the latest saved snapshot in data/.
+# ---------------------------------------------------------------------------
+import pandas as pd
+
+from optionlab.charts import market_vs_model_figure, smile_figure
+from optionlab.market_check import (add_implied_vols, add_model_prices,
+                                    add_time_to_expiry, at_the_money_vol,
+                                    clean_quotes, keep_near_the_money,
+                                    parity_gap, pick_expiry)
+from optionlab.market_data import latest_snapshot_folder, load_snapshot
+
+DATA = Path(__file__).parent / "data"
+snapshot_folder = latest_snapshot_folder(DATA)
+
+if snapshot_folder is None:
+    print("no market snapshot found: run  python snapshot_market.py  first")
+else:
+    info, chains = load_snapshot(snapshot_folder)
+    rate = info["risk_free"]["continuous_rate"]
+    print(f"\nmarket snapshot {info['snapshot_date']}, "
+          f"risk-free {info['risk_free']['yield_percent']}% ({info['risk_free']['date']})")
+
+    for ticker, chain in chains.items():
+        spot = info["underlyings"][ticker]["spot"]
+        spot_date = info["underlyings"][ticker]["spot_date"]
+        note = (f"quotes saved {info['snapshot_date']}, spot {spot:.2f} is the "
+                f"{spot_date} close, r = {rate:.2%}, no dividends, "
+                f"European Black-Scholes, strikes within 20% of spot")
+
+        # 1. clean
+        cleaned, removed = clean_quotes(chain)
+        cleaned = add_time_to_expiry(cleaned, spot_date)
+        print(f"\n{ticker}: {len(chain)} raw quotes, {len(cleaned)} kept. Removed: {removed}")
+
+        # 2. keep sensible strikes and expiries between 1 week and 250 days
+        near = keep_near_the_money(cleaned, spot)
+        near = near[(near["days"] >= 7) & (near["days"] <= 250)]
+
+        # 3. choose expiries: the ones nearest 30, 90 and 180 days if the
+        #    market is busy; every expiry if it is thin.
+        if near["expiry"].nunique() > 6:
+            chosen = sorted({pick_expiry(near, target) for target in (30, 90, 180)})
+        else:
+            chosen = sorted(near["expiry"].unique())
+        selected = near[near["expiry"].isin(chosen)].reset_index(drop=True)
+
+        # 4. implied vols
+        selected = add_implied_vols(selected, spot, rate)
+        print(f"  {len(selected)} quotes in the chosen expiries, "
+              f"{int(selected['implied_vol'].isna().sum())} with no implied vol")
+        save(smile_figure(selected, ticker, spot, note), f"smile_{ticker}.html")
+
+        # 5. market vs model for the expiry with the most usable quotes
+        usable = selected.dropna(subset=["implied_vol"])
+        busiest = usable.groupby("expiry").size().idxmax()
+        one_expiry = selected[selected["expiry"] == busiest]
+        sigma, atm_strike = at_the_money_vol(one_expiry, spot)
+        one_expiry = add_model_prices(one_expiry, spot, rate, sigma)
+        print(f"  market vs model: expiry {busiest}, {len(one_expiry)} quotes, "
+              f"at-the-money strike {atm_strike:g}, sigma {sigma:.2%}")
+        save(market_vs_model_figure(one_expiry, ticker, spot, sigma, note),
+             f"market_vs_model_{ticker}.html")
+
+        # 6. summary numbers for the README and for discussion
+        for expiry in chosen:
+            rows = selected[selected["expiry"] == expiry]
+            vol, strike = at_the_money_vol(rows, spot)
+            gap_strike, gap = parity_gap(rows, spot, rate)
+            vol_text = "n/a" if vol is None else f"{vol:.2%}"
+            gap_text = "n/a" if gap is None else f"{gap:+.2f} at K={gap_strike:g}"
+            print(f"  {expiry} ({int(rows['days'].iloc[0])}d): {len(rows)} quotes, "
+                  f"ATM vol {vol_text}, parity gap {gap_text}")
