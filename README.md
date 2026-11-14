@@ -12,7 +12,7 @@ them against real market quotes.
 | 2 | Black-Scholes pricer | done |
 | 3 | Convergence: binomial vs Black-Scholes | done |
 | 4 | 3D price surface (spot x time to expiry) | done |
-| 5 | 3D Greeks surfaces, checked by finite differences | not started |
+| 5 | 3D Greeks surfaces, checked by finite differences | done |
 | 6 | American put early-exercise boundary | not started |
 | 7 | Implied volatility solver | not started |
 | 8 | Real-market check (SPY, EWJ option chains) | not started |
@@ -63,3 +63,5 @@ Build all charts with `python make_charts.py`, then open the HTML files in
   Black-Scholes price, and the size of the error on log-log axes.
 - `price_surface.html`: rotatable 3D Black-Scholes price surface across
   spot price and time to expiry, with Call / Put buttons.
+- `greeks_surfaces.html`: rotatable 3D surfaces of delta, gamma, vega and
+  theta, with a dropdown to switch between them.

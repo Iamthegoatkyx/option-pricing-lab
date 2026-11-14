@@ -6,8 +6,9 @@ as interactive HTML files in outputs/.
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from optionlab import greeks
 from optionlab.convergence import convergence_table
-from optionlab.surfaces import price_surface
+from optionlab.surfaces import greek_surface, price_surface
 from optionlab.tree import build_tree
 
 # Colours used across all charts (dark theme).
@@ -190,6 +191,76 @@ def price_surface_figure(K, r, sigma):
                 dict(label="Put", method="update",
                      args=[{"visible": [False, True]}, {"title.text": surface_title("put")}]),
             ],
+        )],
+        height=750,
+    )
+    return fig
+
+
+def greeks_surface_figure(K, r, sigma):
+    """
+    Rotatable 3D surfaces of delta, gamma, vega and theta across
+    spot price (x) and time to expiry (y), with a dropdown to switch.
+
+    Gamma and vega are the same for calls and puts, so they appear once.
+    Delta and theta differ, so each has a call and a put entry.
+
+    Units on the chart (chosen to be the ones traders quote):
+      vega  is shown per 1 percentage point of volatility (formula / 100)
+      theta is shown per calendar day                     (formula / 365)
+    """
+    # (dropdown label, function, option type, scale factor, z-axis title)
+    choices = [
+        ("Delta (call)", greeks.delta, "call", 1.0, "delta"),
+        ("Delta (put)", greeks.delta, "put", 1.0, "delta"),
+        ("Gamma", greeks.gamma, "call", 1.0, "gamma"),
+        ("Vega", greeks.vega, "call", 1.0 / 100.0, "vega per 1% vol"),
+        ("Theta (call)", greeks.theta, "call", 1.0 / 365.0, "theta per day"),
+        ("Theta (put)", greeks.theta, "put", 1.0 / 365.0, "theta per day"),
+    ]
+
+    def greeks_title(label):
+        return (f"Black-Scholes Greeks surface: {label}"
+                f"<br><sup>K = {K:g}, r = {r:.0%}, sigma = {sigma:.0%}. "
+                f"Drag to rotate, scroll to zoom</sup>")
+
+    fig = go.Figure()
+    buttons = []
+
+    for position, (label, function, option_type, scale, z_title) in enumerate(choices):
+        spots, times, grid = greek_surface(function, K, r, sigma, option_type)
+        scaled = [[value * scale for value in row] for row in grid]
+
+        fig.add_trace(go.Surface(
+            x=spots, y=times, z=scaled,
+            colorscale="Viridis",
+            visible=(position == 0),              # start with the first one
+            colorbar=dict(title=z_title),
+            hovertemplate=("spot = %{x:.1f}<br>time = %{y:.2f} yr"
+                           f"<br>{z_title} = " + "%{z:.4f}<extra></extra>"),
+        ))
+
+        # This button shows surface number `position` and hides the rest.
+        visible = [k == position for k in range(len(choices))]
+        buttons.append(dict(
+            label=label, method="update",
+            args=[{"visible": visible},
+                  {"title.text": greeks_title(label),
+                   "scene.zaxis.title.text": z_title}],
+        ))
+
+    fig.update_layout(
+        template="plotly_dark",
+        title=greeks_title(choices[0][0]),
+        scene=dict(
+            xaxis_title="spot price",
+            yaxis_title="time to expiry (years)",
+            zaxis_title=choices[0][4],
+        ),
+        updatemenus=[dict(
+            type="dropdown", x=0.0, y=1.0, xanchor="left", yanchor="bottom",
+            showactive=False, bgcolor="#2a2f3a", font=dict(color="#e6e6e6"),
+            buttons=buttons,
         )],
         height=750,
     )

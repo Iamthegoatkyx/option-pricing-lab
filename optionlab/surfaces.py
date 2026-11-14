@@ -40,3 +40,24 @@ def price_surface(K, r, sigma, option_type="call",
         grid.append(row)
 
     return spots, times, grid
+
+
+def greek_surface(greek_function, K, r, sigma, option_type="call",
+                  spot_low=50.0, spot_high=150.0, spot_points=51,
+                  time_low=0.01, time_high=2.0, time_points=40):
+    """
+    Same grid as price_surface(), but filled with one of the Greeks.
+
+    greek_function is the function itself, passed in like any other value,
+    e.g. greek_surface(greeks.delta, 100, 0.05, 0.2). That way one loop
+    serves all four Greeks instead of four copies of the same code.
+    """
+    spots = make_axis(spot_low, spot_high, spot_points)
+    times = make_axis(time_low, time_high, time_points)
+
+    grid = []
+    for T in times:
+        row = [greek_function(S, K, T, r, sigma, option_type) for S in spots]
+        grid.append(row)
+
+    return spots, times, grid

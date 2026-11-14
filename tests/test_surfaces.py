@@ -36,3 +36,14 @@ def test_put_price_falls_with_spot_along_every_row():
     spots, times, grid = price_surface(K, r, sigma, "put")
     for row in grid:
         assert all(later <= earlier for earlier, later in zip(row, row[1:]))
+
+
+def test_greek_surface_values_come_from_the_greek_function():
+    from optionlab import greeks
+    from optionlab.surfaces import greek_surface
+
+    spots, times, grid = greek_surface(greeks.delta, K, r, sigma, "call",
+                                       spot_points=11, time_points=7)
+    assert len(grid) == 7 and len(grid[0]) == 11
+    assert grid[2][5] == pytest.approx(
+        greeks.delta(spots[5], K, times[2], r, sigma, "call"))

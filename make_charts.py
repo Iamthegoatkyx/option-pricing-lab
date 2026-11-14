@@ -6,7 +6,8 @@ Run with:   python make_charts.py
 
 from pathlib import Path
 
-from optionlab.charts import convergence_figure, price_surface_figure, tree_figure
+from optionlab.charts import (convergence_figure, greeks_surface_figure,
+                              price_surface_figure, tree_figure)
 
 OUTPUTS = Path(__file__).parent / "outputs"
 OUTPUTS.mkdir(exist_ok=True)
@@ -35,3 +36,6 @@ save(convergence_figure(S, K, T, r, sigma, "call", max_steps=500),
 
 # Stage 4: 3D Black-Scholes price surface across spot x time to expiry.
 save(price_surface_figure(K, r, sigma), "price_surface.html")
+
+# Stage 5: 3D Greeks surfaces with a dropdown.
+save(greeks_surface_figure(K, r, sigma), "greeks_surfaces.html")
