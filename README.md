@@ -8,7 +8,7 @@ them against real market quotes.
 
 | Stage | What | Status |
 |---|---|---|
-| 1 | Binomial tree pricer (Cox-Ross-Rubinstein), European + American | in progress |
+| 1 | Binomial tree pricer (Cox-Ross-Rubinstein), European + American | done |
 | 2 | Black-Scholes pricer | not started |
 | 3 | Convergence: binomial vs Black-Scholes | not started |
 | 4 | 3D price surface (spot x time to expiry) | not started |
@@ -51,3 +51,11 @@ data/          dated snapshots of market data
 
 - No dividends yet. A dividend yield will be added in a later step; until
   then, model prices for dividend-paying underlyings (SPY, EWJ) are biased.
+
+## Charts
+
+Build all charts with `python make_charts.py`, then open the HTML files in
+`outputs/` in a browser.
+
+- `binomial_tree_european_call.html`, `binomial_tree_american_put.html`:
+  4-step trees with the stock price and option value at every node.
