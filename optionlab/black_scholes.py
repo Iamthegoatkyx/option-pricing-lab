@@ -88,4 +88,13 @@ def black_scholes_price(S, K, T, r, sigma, option_type="call"):
     f. The function is about 10 lines. If yours is much longer, stop and
        re-read the formulas.
     """
-    raise NotImplementedError("Your turn: write black_scholes_price() using the hints above.")
+    if option_type not in ("call", "put"):
+        raise ValueError("option_type must be 'call' or 'put'")
+
+    d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+
+    if option_type == "call":
+        return S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+    else:
+        return K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
