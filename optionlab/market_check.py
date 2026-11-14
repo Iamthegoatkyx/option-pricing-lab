@@ -149,12 +149,15 @@ def keep_near_the_money(quotes, spot, low=0.8, high=1.2):
     return quotes[near].reset_index(drop=True)
 
 
-def parity_gap(quotes, spot, r):
+def parity_gap(quotes, spot, r, dividend_value=0.0):
     """
     How far the nearest-to-the-money call and put of ONE expiry are from
     put-call parity:
 
-        gap = (S - K * e^(-rT))  -  (call mid - put mid)
+        gap = (S - dividend_value - K * e^(-rT))  -  (call mid - put mid)
+
+    dividend_value is the value today of the dividends paid before expiry
+    (see optionlab/dividends.py). The default 0.0 means "no dividends".
 
     With no dividends, European options and perfectly timed prices the gap
     would be zero. Returns (strike, gap), or (None, None) if no strike has
@@ -169,5 +172,44 @@ def parity_gap(quotes, spot, r):
     strike = min(shared, key=lambda k: abs(k - spot))
     T = float(calls.loc[strike, "T"])
     market = float(calls.loc[strike, "mid"] - puts.loc[strike, "mid"])
-    theory = spot - strike * math.exp(-r * T)
+    theory = spot - dividend_value - strike * math.exp(-r * T)
     return float(strike), theory - market
+
+
+def parity_gap_table(quotes, spot, r, valuation_date, q, projected_dividends):
+    """
+    The put-call parity gap of every expiry under three dividend models:
+
+        gap_none  : no dividends
+        gap_yield : continuous yield q
+        gap_cash  : projected discrete cash dividends
+
+    quotes must already be cleaned and have 'days' and 'T' columns.
+    Returns a DataFrame with one row per expiry that has a call and a put
+    at the same strike.
+    """
+    from optionlab.dividends import value_of_cash_dividends, value_of_yield
+
+    rows = []
+    for expiry in sorted(quotes["expiry"].unique()):
+        one_expiry = quotes[quotes["expiry"] == expiry]
+        strike, gap_none = parity_gap(one_expiry, spot, r)
+        if strike is None:
+            continue
+
+        T = float(one_expiry["T"].iloc[0])
+        yield_value = value_of_yield(spot, q, T)
+        cash_value = value_of_cash_dividends(projected_dividends, valuation_date, expiry, r)
+
+        rows.append({
+            "expiry": expiry,
+            "days": int(one_expiry["days"].iloc[0]),
+            "strike": strike,
+            "yield_value": yield_value,
+            "cash_value": cash_value,
+            "gap_none": gap_none,
+            "gap_yield": parity_gap(one_expiry, spot, r, yield_value)[1],
+            "gap_cash": parity_gap(one_expiry, spot, r, cash_value)[1],
+        })
+
+    return pd.DataFrame(rows)

@@ -416,3 +416,45 @@ def market_vs_model_figure(quotes, ticker, spot, sigma, snapshot_note):
         height=650,
     )
     return fig
+
+
+def parity_gap_figure(table, projected_dividends, valuation_date, ticker, snapshot_note):
+    """
+    Put-call parity gap against days to expiry, under three dividend models.
+    A model that explained everything would give a flat line at zero.
+    Dotted vertical lines mark the projected ex-dividend dates.
+    """
+    from datetime import date
+
+    fig = go.Figure()
+    for column, label, colour in (
+            ("gap_none", "no dividends", LINE_COLOUR),
+            ("gap_yield", "continuous yield", NODE_COLOUR),
+            ("gap_cash", "discrete cash dividends", EXERCISE_COLOUR)):
+        fig.add_trace(go.Scatter(
+            x=table["days"], y=table[column], mode="lines+markers", name=label,
+            line=dict(color=colour, width=1.5), marker=dict(size=6),
+            customdata=table["expiry"],
+            hovertemplate="%{customdata} (%{x} days)<br>gap = %{y:+.2f}<extra>" + label + "</extra>",
+        ))
+
+    start = date.fromisoformat(valuation_date)
+    last_day = int(table["days"].max())
+    for day, amount in projected_dividends:
+        days_away = (date.fromisoformat(day) - start).days
+        if days_away <= last_day:
+            fig.add_vline(x=days_away, line=dict(color=ERROR_COLOUR, dash="dot", width=1),
+                          annotation_text=f"ex-div {amount:.2f}", annotation_position="top",
+                          annotation_font=dict(size=10, color=ERROR_COLOUR))
+
+    fig.add_hline(y=0.0, line=dict(color="#e6e6e6", width=1))
+    fig.update_layout(
+        template="plotly_dark",
+        title=(f"{ticker}: put-call parity gap under three dividend models"
+               f"<br><sup>gap = (S - dividend value - K e^(-rT)) - (call mid - put mid), "
+               f"at the strike nearest spot. {snapshot_note}</sup>"),
+        xaxis_title="days to expiry",
+        yaxis_title="parity gap (dollars)",
+        height=650,
+    )
+    return fig

@@ -118,3 +118,48 @@ else:
             gap_text = "n/a" if gap is None else f"{gap:+.2f} at K={gap_strike:g}"
             print(f"  {expiry} ({int(rows['days'].iloc[0])}d): {len(rows)} quotes, "
                   f"ATM vol {vol_text}, parity gap {gap_text}")
+
+
+# ---------------------------------------------------------------------------
+# Dividends: does a continuous yield or discrete cash dividends close the
+# SPY put-call parity gap better?  (EWJ has no strike with both a clean
+# call and a clean put, so there is nothing to compare there.)
+# ---------------------------------------------------------------------------
+from optionlab.charts import parity_gap_figure
+from optionlab.dividends import project_dividends, trailing_dividends, trailing_yield
+from optionlab.market_check import parity_gap_table
+from optionlab.market_data import load_dividends
+
+if snapshot_folder is not None and (snapshot_folder / "SPY_dividends.csv").exists():
+    ticker = "SPY"
+    spot = info["underlyings"][ticker]["spot"]
+    spot_date = info["underlyings"][ticker]["spot_date"]
+
+    history = load_dividends(snapshot_folder, ticker)
+    q = trailing_yield(history, spot, spot_date)
+    projected = project_dividends(history, spot_date)
+    print(f"\n{ticker} dividends in the last 12 months: {trailing_dividends(history, spot_date)}")
+    print(f"trailing yield q = {q:.3%}")
+    print(f"projected (assumes next year repeats last year): {projected[:5]}")
+
+    cleaned, removed = clean_quotes(chains[ticker])
+    cleaned = add_time_to_expiry(cleaned, spot_date)
+    cleaned = cleaned[(cleaned["days"] >= 7) & (cleaned["days"] <= 400)]
+
+    table = parity_gap_table(cleaned, spot, rate, spot_date, q, projected)
+    pd.set_option("display.width", 200)
+    print(table.round(2).to_string(index=False))
+
+    for label, part in (("all expiries", table),
+                        ("up to 105 days", table[table["days"] <= 105]),
+                        ("beyond 105 days", table[table["days"] > 105])):
+        print(f"  {label} ({len(part)} expiries):")
+        for column in ("gap_none", "gap_yield", "gap_cash"):
+            print(f"    {column}: average {part[column].mean():+.2f}, "
+                  f"lowest {part[column].min():+.2f}, highest {part[column].max():+.2f}, "
+                  f"standard deviation {part[column].std(ddof=0):.2f}")
+
+    note = (f"quotes saved {info['snapshot_date']}, spot {spot:.2f} is the "
+            f"{spot_date} close, r = {rate:.2%}, q = {q:.2%}")
+    save(parity_gap_figure(table, projected, spot_date, ticker, note),
+         f"parity_gap_{ticker}.html")

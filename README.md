@@ -15,7 +15,8 @@ them against real market quotes.
 | 5 | 3D Greeks surfaces, checked by finite differences | done |
 | 6 | American put early-exercise boundary | done |
 | 7 | Implied volatility solver | done |
-| 8 | Real-market check (SPY, EWJ option chains) | done without dividends; dividend yield is the next step |
+| 8 | Real-market check (SPY, EWJ option chains) | done without dividends |
+| 9 | Dividends: yield `q` in both pricers; yield vs discrete cash dividends on the SPY parity gap | parity comparison done; `q` in the pricers in progress (18 tests failing until then) |
 
 ## Setup (Mac)
 
@@ -65,6 +66,9 @@ data/          dated snapshots of market data
 - EWJ options are thinly traded: in the 2026-11-14 snapshot only 68 of 663
   quotes survive cleaning.
 
+- Future dividends are a guess: the discrete model assumes each of the last
+  four payments repeats 52 weeks later with the same amount.
+
 ## Market data
 
 ```bash
@@ -95,3 +99,5 @@ Build all charts with `python make_charts.py`, then open the HTML files in
   several expiries, calls and puts shown separately.
 - `market_vs_model_SPY.html`, `market_vs_model_EWJ.html`: market mid prices
   (with bid-ask bars) against Black-Scholes prices at one volatility.
+- `parity_gap_SPY.html`: the put-call parity gap by expiry with no
+  dividends, a continuous yield, and projected discrete cash dividends.

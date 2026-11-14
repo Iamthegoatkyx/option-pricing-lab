@@ -103,12 +103,28 @@ def download_chain(ticker):
     return spot, spot_date, pd.concat(pieces, ignore_index=True)
 
 
+def download_dividends(ticker):
+    """Every past dividend of one ticker: DataFrame with ex_date and amount."""
+    history = yf.Ticker(ticker).dividends
+    return pd.DataFrame({
+        "ex_date": [day.strftime("%Y-%m-%d") for day in history.index],
+        "amount": history.values,
+    })
+
+
+def load_dividends(folder, ticker):
+    """Read a saved dividend file as a list of (ex_date, amount) pairs."""
+    table = pd.read_csv(Path(folder) / f"{ticker}_dividends.csv")
+    return list(zip(table["ex_date"], table["amount"]))
+
+
 def save_snapshot(tickers, data_folder, snapshot_date):
     """
     Download the rate and each ticker's chain, and save them under
     data_folder/<snapshot_date>/ :
 
         <ticker>_options.csv   the raw chain, untouched
+        <ticker>_dividends.csv every past dividend (ex-date and amount)
         snapshot.json          spot prices, the rate, and where they came from
     """
     folder = Path(data_folder) / snapshot_date
@@ -129,6 +145,7 @@ def save_snapshot(tickers, data_folder, snapshot_date):
     for ticker in tickers:
         spot, spot_date, chain = download_chain(ticker)
         chain.to_csv(folder / f"{ticker}_options.csv", index=False)
+        download_dividends(ticker).to_csv(folder / f"{ticker}_dividends.csv", index=False)
         info["underlyings"][ticker] = {
             "spot": spot,
             "spot_date": spot_date,
