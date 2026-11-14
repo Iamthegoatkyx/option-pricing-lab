@@ -1,0 +1,23 @@
+{
+  "snapshot_date": "2026-11-14",
+  "risk_free": {
+    "series": "DGS3MO (FRED, 3-month US Treasury)",
+    "date": "2026-11-12",
+    "yield_percent": 4.32,
+    "continuous_rate": 0.042292912190251365
+  },
+  "underlyings": {
+    "SPY": {
+      "spot": 754.3699951171875,
+      "spot_date": "2026-11-13",
+      "contracts": 10354,
+      "expiries": 32
+    },
+    "EWJ": {
+      "spot": 91.76000213623047,
+      "spot_date": "2026-11-13",
+      "contracts": 663,
+      "expiries": 12
+    }
+  }
+}
