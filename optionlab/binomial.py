@@ -94,4 +94,35 @@ def binomial_price(S, K, T, r, sigma, steps, option_type="call", american=False)
 
     A plain Python list and for-loops are fine. Do not worry about speed yet.
     """
-    raise NotImplementedError("Your turn: write binomial_price() using the hints above.")
+    if option_type not in ("call", "put"):
+        raise ValueError("option_type must be 'call' or 'put'")
+
+    dt = T / steps
+    u = math.exp(sigma * math.sqrt(dt))
+    d = 1 / u
+    p = (math.exp(r * dt) - d) / (u - d)
+    disc = math.exp(-r * dt)
+
+    values = []
+    for j in range(steps + 1):
+        ST = S * u**j * d**(steps - j)
+        if option_type == "call":
+            values.append(max(ST - K, 0))
+        else:
+            values.append(max(K - ST, 0))
+
+    for i in range(steps - 1, -1, -1):
+        for j in range(i + 1):
+            hold = disc * (p * values[j + 1] + (1 - p) * values[j])
+            if american:
+                St = S * u**j * d**(i - j)
+                if option_type == "call":
+                    exercise = max(St - K, 0)
+                else:
+                    exercise = max(K - St, 0)
+                values[j] = max(hold, exercise)
+            else:
+                values[j] = hold
+
+    return values[0]   
+    
