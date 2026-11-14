@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from optionlab import greeks
+from optionlab.boundary import exercise_boundary
 from optionlab.convergence import convergence_table
 from optionlab.surfaces import greek_surface, price_surface
 from optionlab.tree import build_tree
@@ -263,5 +264,62 @@ def greeks_surface_figure(K, r, sigma):
             buttons=buttons,
         )],
         height=750,
+    )
+    return fig
+
+
+def exercise_boundary_figure(S, K, T, r, sigma, fine_steps=1000, coarse_steps=50):
+    """
+    The American put's early-exercise boundary through time.
+
+    Below the line: exercise now. Above it: keep holding.
+    Two trees are drawn so you can see what the number of steps does:
+    a fine one (line) and a coarse one (dots).
+    """
+    fine_times, fine = exercise_boundary(S, K, T, r, sigma, fine_steps)
+    coarse_times, coarse = exercise_boundary(S, K, T, r, sigma, coarse_steps)
+
+    lowest = min(price for price in fine if price is not None)
+    floor = lowest - 5.0                      # bottom edge of the chart
+
+    fig = go.Figure()
+
+    # Invisible flat line along the bottom, so the next trace can shade
+    # the area between itself and this one.
+    fig.add_trace(go.Scatter(
+        x=[fine_times[0], fine_times[-1]], y=[floor, floor], mode="lines",
+        line=dict(width=0), hoverinfo="skip", showlegend=False,
+    ))
+    # Plotly leaves a gap wherever a value is None, which is what we want
+    # for the early steps where the tree has no exercise node.
+    fig.add_trace(go.Scatter(
+        x=fine_times, y=fine, mode="lines", name=f"boundary, {fine_steps} steps",
+        line=dict(color=EXERCISE_COLOUR, width=1.5),
+        fill="tonexty", fillcolor="rgba(247, 37, 133, 0.15)",
+        hovertemplate="time = %{x:.3f} yr<br>exercise below %{y:.2f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=coarse_times, y=coarse, mode="markers", name=f"boundary, {coarse_steps} steps",
+        marker=dict(color=NODE_COLOUR, size=6),
+        hovertemplate="time = %{x:.3f} yr<br>exercise below %{y:.2f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=[0.0, T], y=[K, K], mode="lines", name=f"strike K = {K:g}",
+        line=dict(color=LINE_COLOUR, width=1.5, dash="dash"), hoverinfo="skip",
+    ))
+
+    fig.add_annotation(x=0.6 * T, y=floor + 2.5, text="exercise now", showarrow=False,
+                       font=dict(color=EXERCISE_COLOUR))
+    fig.add_annotation(x=0.3 * T, y=K - 6.0, text="hold", showarrow=False)
+
+    fig.update_layout(
+        template="plotly_dark",
+        title=(f"American put: early-exercise boundary from the binomial tree"
+               f"<br><sup>S = {S:g}, K = {K:g}, T = {T:g} yr, r = {r:.0%}, "
+               f"sigma = {sigma:.0%}</sup>"),
+        xaxis=dict(title="time from today (years); expiry is at the right edge",
+                   range=[0.0, T]),
+        yaxis=dict(title="stock price", range=[floor, K + 3.0]),
+        height=650,
     )
     return fig

@@ -13,7 +13,7 @@ them against real market quotes.
 | 3 | Convergence: binomial vs Black-Scholes | done |
 | 4 | 3D price surface (spot x time to expiry) | done |
 | 5 | 3D Greeks surfaces, checked by finite differences | done |
-| 6 | American put early-exercise boundary | not started |
+| 6 | American put early-exercise boundary | done |
 | 7 | Implied volatility solver | not started |
 | 8 | Real-market check (SPY, EWJ option chains) | not started |
 
@@ -65,3 +65,5 @@ Build all charts with `python make_charts.py`, then open the HTML files in
   spot price and time to expiry, with Call / Put buttons.
 - `greeks_surfaces.html`: rotatable 3D surfaces of delta, gamma, vega and
   theta, with a dropdown to switch between them.
+- `exercise_boundary.html`: the stock price below which the American put
+  should be exercised, through time, from a 1000-step and a 50-step tree.

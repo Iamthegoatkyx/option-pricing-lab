@@ -6,8 +6,9 @@ Run with:   python make_charts.py
 
 from pathlib import Path
 
-from optionlab.charts import (convergence_figure, greeks_surface_figure,
-                              price_surface_figure, tree_figure)
+from optionlab.charts import (convergence_figure, exercise_boundary_figure,
+                              greeks_surface_figure, price_surface_figure,
+                              tree_figure)
 
 OUTPUTS = Path(__file__).parent / "outputs"
 OUTPUTS.mkdir(exist_ok=True)
@@ -39,3 +40,6 @@ save(price_surface_figure(K, r, sigma), "price_surface.html")
 
 # Stage 5: 3D Greeks surfaces with a dropdown.
 save(greeks_surface_figure(K, r, sigma), "greeks_surfaces.html")
+
+# Stage 6: American put early-exercise boundary.
+save(exercise_boundary_figure(S, K, T, r, sigma), "exercise_boundary.html")

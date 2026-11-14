@@ -18,6 +18,9 @@ j up moves (and so i - j down moves). Step i has i + 1 nodes.
 
 import math
 
+# Differences smaller than this are treated as "equal" (see build_tree).
+ROUNDING_TOLERANCE = 1e-9
+
 
 def build_tree(S, K, T, r, sigma, steps, option_type="call", american=False):
     """
@@ -66,7 +69,10 @@ def build_tree(S, K, T, r, sigma, steps, option_type="call", american=False):
             hold = disc * (p * option[i + 1][j + 1] + (1 - p) * option[i + 1][j])
             exercise_now = payoff(stock[i][j])
 
-            if american and exercise_now > hold:
+            # Exercise only if it is better by more than rounding error.
+            # In theory the two can be exactly equal (e.g. when r = 0), and
+            # floating-point arithmetic would then pick a winner at random.
+            if american and exercise_now > hold + ROUNDING_TOLERANCE:
                 option[i][j] = exercise_now
                 exercise[i][j] = True
             else:
