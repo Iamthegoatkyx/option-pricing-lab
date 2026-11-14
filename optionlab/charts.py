@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from optionlab.convergence import convergence_table
+from optionlab.surfaces import price_surface
 from optionlab.tree import build_tree
 
 # Colours used across all charts (dark theme).
@@ -139,5 +140,57 @@ def convergence_figure(S, K, T, r, sigma, option_type="call", max_steps=500):
                f"<br><sup>S = {S:g}, K = {K:g}, T = {T:g} yr, r = {r:.0%}, "
                f"sigma = {sigma:.0%}, steps 1 to {max_steps}</sup>"),
         height=850,
+    )
+    return fig
+
+
+def price_surface_figure(K, r, sigma):
+    """
+    Rotatable 3D surface of the Black-Scholes price across
+    spot price (x) and time to expiry (y), with buttons to switch
+    between the call and the put.
+
+    Both surfaces are added to the figure; the buttons just choose which
+    one is visible.
+    """
+    def surface_title(option_type):
+        return (f"Black-Scholes price surface: European {option_type}"
+                f"<br><sup>K = {K:g}, r = {r:.0%}, sigma = {sigma:.0%}. "
+                f"Drag to rotate, scroll to zoom</sup>")
+
+    fig = go.Figure()
+
+    for option_type in ("call", "put"):
+        spots, times, grid = price_surface(K, r, sigma, option_type)
+        fig.add_trace(go.Surface(
+            x=spots, y=times, z=grid,
+            colorscale="Viridis",
+            visible=(option_type == "call"),      # start by showing the call
+            colorbar=dict(title="price"),
+            hovertemplate=("spot = %{x:.1f}<br>time = %{y:.2f} yr"
+                           "<br>price = %{z:.2f}<extra></extra>"),
+        ))
+
+    fig.update_layout(
+        template="plotly_dark",
+        title=surface_title("call"),
+        scene=dict(
+            xaxis_title="spot price",
+            yaxis_title="time to expiry (years)",
+            zaxis_title="option price",
+        ),
+        updatemenus=[dict(
+            type="buttons", direction="right", x=0.0, y=1.0, xanchor="left", yanchor="bottom",
+            showactive=False, bgcolor="#2a2f3a", font=dict(color="#e6e6e6"),
+            # Each button changes which surface is visible AND the title,
+            # so the title always says which option you are looking at.
+            buttons=[
+                dict(label="Call", method="update",
+                     args=[{"visible": [True, False]}, {"title.text": surface_title("call")}]),
+                dict(label="Put", method="update",
+                     args=[{"visible": [False, True]}, {"title.text": surface_title("put")}]),
+            ],
+        )],
+        height=750,
     )
     return fig

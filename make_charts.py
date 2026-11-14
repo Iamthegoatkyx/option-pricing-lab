@@ -6,7 +6,7 @@ Run with:   python make_charts.py
 
 from pathlib import Path
 
-from optionlab.charts import convergence_figure, tree_figure
+from optionlab.charts import convergence_figure, price_surface_figure, tree_figure
 
 OUTPUTS = Path(__file__).parent / "outputs"
 OUTPUTS.mkdir(exist_ok=True)
@@ -32,3 +32,6 @@ save(tree_figure(S, K, T, r, sigma, 4, "put", american=True),
 # Stage 3: binomial price vs number of steps, against Black-Scholes.
 save(convergence_figure(S, K, T, r, sigma, "call", max_steps=500),
      "convergence.html")
+
+# Stage 4: 3D Black-Scholes price surface across spot x time to expiry.
+save(price_surface_figure(K, r, sigma), "price_surface.html")

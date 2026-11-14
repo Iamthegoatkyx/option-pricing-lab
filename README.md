@@ -11,7 +11,7 @@ them against real market quotes.
 | 1 | Binomial tree pricer (Cox-Ross-Rubinstein), European + American | done |
 | 2 | Black-Scholes pricer | done |
 | 3 | Convergence: binomial vs Black-Scholes | done |
-| 4 | 3D price surface (spot x time to expiry) | not started |
+| 4 | 3D price surface (spot x time to expiry) | done |
 | 5 | 3D Greeks surfaces, checked by finite differences | not started |
 | 6 | American put early-exercise boundary | not started |
 | 7 | Implied volatility solver | not started |
@@ -61,3 +61,5 @@ Build all charts with `python make_charts.py`, then open the HTML files in
   4-step trees with the stock price and option value at every node.
 - `convergence.html`: binomial price for 1 to 500 steps against the
   Black-Scholes price, and the size of the error on log-log axes.
+- `price_surface.html`: rotatable 3D Black-Scholes price surface across
+  spot price and time to expiry, with Call / Put buttons.
