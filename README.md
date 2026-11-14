@@ -14,7 +14,7 @@ them against real market quotes.
 | 4 | 3D price surface (spot x time to expiry) | done |
 | 5 | 3D Greeks surfaces, checked by finite differences | done |
 | 6 | American put early-exercise boundary | done |
-| 7 | Implied volatility solver | not started |
+| 7 | Implied volatility solver | done |
 | 8 | Real-market check (SPY, EWJ option chains) | not started |
 
 ## Setup (Mac)
@@ -51,6 +51,10 @@ data/          dated snapshots of market data
 
 - No dividends yet. A dividend yield will be added in a later step; until
   then, model prices for dividend-paying underlyings (SPY, EWJ) are biased.
+
+- Implied volatility is unreliable for deep in-the-money options with little
+  time left: vega is nearly zero there, so the price says almost nothing
+  about volatility.
 
 ## Charts
 
