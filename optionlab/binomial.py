@@ -15,7 +15,7 @@ period later. The value at the very first node is today's price.
 import math
 
 
-def binomial_price(S, K, T, r, sigma, steps, option_type="call", american=False):
+def binomial_price(S, K, T, r, sigma, steps, option_type="call", american=False, q=0.0):
     """
     Price a call or put with a Cox-Ross-Rubinstein binomial tree.
 
@@ -39,6 +39,9 @@ def binomial_price(S, K, T, r, sigma, steps, option_type="call", american=False)
     american : bool
         False -> European (can only be exercised at expiry).
         True  -> American (can be exercised at any node).
+    q : float
+        Dividend yield per year, continuously compounded (0.01 = 1%).
+        The default 0.0 means no dividends, so old code keeps working.
 
     Returns
     -------
@@ -76,6 +79,25 @@ def binomial_price(S, K, T, r, sigma, steps, option_type="call", american=False)
 
     7. American only: at every node the holder can exercise right now, so
            value = max(value from step 6, payoff from exercising now)
+
+    Adding a dividend yield q   (TO DO: not in the code below yet)
+    -----------------------------------------------------------
+    A stock that pays dividends hands part of its return to the holder as
+    cash. The option holder does not get that cash, and the stock PRICE
+    grows more slowly because of it. In the risk-neutral world the total
+    return on the stock must still be r, so the price alone grows at r - q.
+
+    Only ONE line of the tree changes: the risk-neutral probability.
+
+           p = (e^((r - q) * dt) - d) / (u - d)
+
+    Check it against the old rule: p*u + (1-p)*d must now equal
+    e^((r-q)*dt), the slower growth of the price.
+
+    What does NOT change:
+      - u and d (they describe volatility, not growth);
+      - the discount factor e^(-r*dt) (cash is still discounted at r);
+      - the payoffs and the American exercise rule.
 
     Hints for writing it
     --------------------

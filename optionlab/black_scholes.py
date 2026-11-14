@@ -16,10 +16,10 @@ import math
 from scipy.stats import norm
 
 
-def black_scholes_price(S, K, T, r, sigma, option_type="call"):
+def black_scholes_price(S, K, T, r, sigma, option_type="call", q=0.0):
     """
-    Price a European call or put with the Black-Scholes formula
-    (no dividends).
+    Price a European call or put with the Black-Scholes formula,
+    with an optional continuous dividend yield q.
 
     Parameters
     ----------
@@ -35,6 +35,9 @@ def black_scholes_price(S, K, T, r, sigma, option_type="call"):
         Volatility per year (0.20 = 20%, must be greater than 0).
     option_type : str
         "call" or "put". Anything else should raise ValueError.
+    q : float
+        Dividend yield per year, continuously compounded (0.01 = 1%).
+        The default 0.0 means no dividends, so old code keeps working.
 
     Returns
     -------
@@ -73,6 +76,22 @@ def black_scholes_price(S, K, T, r, sigma, option_type="call"):
        Same story mirrored: N(-d2) is the probability the stock finishes
        BELOW K. You can check this formula is consistent with the call
        formula using put-call parity and the fact that N(x) + N(-x) = 1.
+
+    Adding a dividend yield q   (TO DO: not in the code below yet)
+    -----------------------------------------------------------
+    Owning the option is not owning the stock: you miss the dividends paid
+    before expiry. A share bought today WITHOUT its dividends up to time T
+    is worth S * e^(-q*T), not S. So wherever the formula has S, use
+    S * e^(-q*T) instead. That gives three changes:
+
+           d1   = ( ln(S / K) + (r - q + sigma^2 / 2) * T ) / ( sigma * sqrt(T) )
+           call = S * e^(-q*T) * N(d1)  -  K * e^(-r*T) * N(d2)
+           put  = K * e^(-r*T) * N(-d2) -  S * e^(-q*T) * N(-d1)
+
+    d2 = d1 - sigma * sqrt(T) is unchanged. (The "- q" inside d1 comes from
+    ln(S * e^(-qT) / K) = ln(S / K) - q*T.)
+
+    Put-call parity becomes:  call - put = S * e^(-q*T) - K * e^(-r*T)
 
     Hints for writing it
     --------------------
